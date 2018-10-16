@@ -1,0 +1,4 @@
+requests
+python-osc
+pypozyx
+pyserial>=3.0
