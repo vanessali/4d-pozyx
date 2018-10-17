@@ -21,7 +21,7 @@ from pypozyx.tools.version_check import perform_latest_version_check
 
 
 # IDs of the tags to position, add None to position the local tag as well.
-TAG_IDS = [None, 0x6746, 0x674B]
+TAG_IDS = [0x6746, 0x674B]
 
 
 class MultitagPositioning(object):
@@ -114,27 +114,18 @@ class MultitagPositioning(object):
                     if tag == network_id:
                         self.listeners[tag] = position_to_send
 
-                        # self.max_client.send_message("/position/tag%d" % TAG_IDS.index(tag), args_to_send)
-                        # self.max_client.send_message("/orientation/angle", self.angle)
-                        # self.max_client.send_message("/orientation/distance", self.distance)
-                        # self.max_client.send_message("/orientation/middle", [self.middle.x, 2.5, self.middle.y])
-                        # self.of_client.send_message("/orientation/angle", [TAG_IDS[1], TAG_IDS[2], self.angle])
-                        # self.of_client.send_message("/orientation/distance", [TAG_IDS[1], TAG_IDS[2], self.distance])
-                        # self.of_client.send_message("/orientation/middle", [TAG_IDS[1], TAG_IDS[2], self.middle.x, 2.5, self.middle.y])
+                        self.max_client.send_message("/position/tag%d" % TAG_IDS.index(tag), args_to_send)
+                        self.max_client.send_message("/orientation/angle", self.angle)
+                        self.max_client.send_message("/orientation/distance", self.distance)
+                        self.max_client.send_message("/orientation/middle", [self.middle.x, 2.5, self.middle.y])
+                        self.of_client.send_message("/orientation/angle", [TAG_IDS[1], TAG_IDS[2], self.angle])
+                        self.of_client.send_message("/orientation/distance", [TAG_IDS[1], TAG_IDS[2], self.distance])
+                        self.of_client.send_message("/orientation/middle", [TAG_IDS[1], TAG_IDS[2], self.middle.x, 2.5, self.middle.y])
 
-                        if tag == TAG_IDS[1]:
-                            self.engine_client.send_message("/source1/position", [position_to_send.x, 1.7, position_to_send.y])
-                        elif tag == TAG_IDS[2]:
-                            self.engine_client.send_message("/source2/position", [position_to_send.x, 1.7, position_to_send.y])
-                # if has_moved_x_distance(self.prev_coordinates, position):
-                #     self.prev_coordinates = position
-                #     position_to_send = get_4d_coordinates(position)
-                #     self.of_client.send_message("/position/tag1", [position_to_send.x, 2.5, position_to_send.y])
-                #     self.max_client.send_message("/position/tag1", [position_to_send.x, 2.5, position_to_send.y])
-            # if network_id == TAG_IDS[1]:
-            #     self.engine_client.send_message("/source1/position", [position_to_send.x, 4, position_to_send.y])
-            # if network_id == TAG_IDS[2]:
-            #     self.engine_client.send_message("/source2/position", [position_to_send.x, 1.7, position_to_send.y])
+                if network_id == TAG_IDS[1]:
+                    self.engine_client.send_message("/source21/position", [position_to_send.x, 2.5, position_to_send.y])
+                if network_id == TAG_IDS[2]:
+                    self.engine_client.send_message("/source22/position", [position_to_send.x, 2.5, position_to_send.y])
 
     def setAnchorsManual(self, save_to_flash=False):
         """Adds the manually measured anchors to the Pozyx's device list one for one."""
@@ -195,11 +186,6 @@ Y_OFFSET = -6295
 def get_4d_coordinates(position):
     return Coordinates(-(position.x + X_OFFSET) / 1000, -(position.y + Y_OFFSET) / 1000, position.z / 1000)
 
-def has_moved_x_distance(old_pos, new_pos, threshold=100):
-    """Check that the new position is a distance of more than `threshold` in millimeters"""
-    dist = sqrt((new_pos.x-old_pos.x)**2 + (new_pos.y-old_pos.y)**2)    # ignore Z position for now
-    # dist = sqrt((new_pos.x-old_pos.x)**2 + (new_pos.y-old_pos.y)**2 + (new_pos.z-old_pos.z)**2)
-    return dist > threshold
 
 def get_orientation_info(p1, p2):
     x_diff = (p2.x - p1.x)
@@ -224,12 +210,12 @@ if __name__ == "__main__":
         quit()
 
     # necessary data for calibration (SSI)
-    anchors = [DeviceCoordinates(0x6764, 1, Coordinates(0, 0, 3270)),
-               DeviceCoordinates(0x6756, 1, Coordinates(12591, 3761, 2958)),
-               DeviceCoordinates(0x6727, 1, Coordinates(530, 11879, 2438)),
-               DeviceCoordinates(0x6e19, 1, Coordinates(0, 18858, 3364)),
-               DeviceCoordinates(0x6767, 1, Coordinates(12591, 18872, 2942)),
-               DeviceCoordinates(0x6e17, 1, Coordinates(12061, 10979, 2438))]
+    anchors = [DeviceCoordinates(0x6764, 1, Coordinates(0, 0, 2352)),
+               DeviceCoordinates(0x6756, 1, Coordinates(3761, 12591, 2958)),
+               DeviceCoordinates(0x6727, 1, Coordinates(11879, 530, 2438)),
+               DeviceCoordinates(0x6e19, 1, Coordinates(18858, 0, 3364)),
+               DeviceCoordinates(0x6767, 1, Coordinates(18917, 12603, 2432)),
+               DeviceCoordinates(0x6e17, 1, Coordinates(10979, 12061, 2438))]
 
 
     # positioning algorithm to use, other is PozyxConstants.POSITIONING_ALGORITHM_TRACKING (must use 3d positioning for this)
