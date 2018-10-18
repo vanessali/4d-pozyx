@@ -43,6 +43,7 @@ class MultitagPositioning(object):
         self.height = height
 
         self.listeners = {t: Coordinates(0, 0, 0) for t in TAG_IDS if t is not None}
+        self.tag_dist_traveled = {t: 0.0 for t in TAG_IDS if t is not None}
 
         self.prev_coordinates = Coordinates(0, 0, 0)
         self.distance = 0
@@ -86,12 +87,19 @@ class MultitagPositioning(object):
             status = self.pozyx.doPositioning(
                 position, self.dimension, self.height, self.algorithm, remote_id=tag_id)
             if status == POZYX_SUCCESS:
-                # TODO smooth signal here
-                self.distance, self.angle, self.middle = get_orientation_info(self.listeners[TAG_IDS[1]],
-                                                                              self.listeners[TAG_IDS[2]])
+                if tag_id:
+                    room_position = get_4d_coordinates(position)
+                    self.tag_dist_traveled[tag_id] = get_distance(room_position, self.listeners[tag_id])    # determines how far tag has traveled since the last update
+                    self.listeners[tag_id] = room_position
+
                 self.printPublishPosition(position, tag_id)
+                self.publish_distance_traveled(tag_id)
             else:
                 self.printPublishErrorCode("positioning", tag_id)
+
+        self.distance, self.angle, self.middle = get_orientation_info(self.listeners[TAG_IDS[0]],
+                                                                      self.listeners[TAG_IDS[1]])
+        self.publish_orientation_info()
 
     def printPublishPosition(self, position, network_id):
         """Prints the Pozyx's position and possibly sends it as a OSC packet"""
@@ -105,27 +113,29 @@ class MultitagPositioning(object):
                 "/position", [network_id, position.x, position.y, position.z])
 
             if network_id:
-                position_to_send = get_4d_coordinates(position)
+                position_to_send = self.listeners[network_id]
 
                 args_to_send = [network_id, position_to_send.x, 2.5, position_to_send.y]
+
+                self.max_client.send_message("/position/tag%d" % (TAG_IDS.index(network_id)+1), args_to_send)
                 self.of_client.send_message("/position", args_to_send)
 
-                for tag in TAG_IDS:
-                    if tag == network_id:
-                        self.listeners[tag] = position_to_send
-
-                        self.max_client.send_message("/position/tag%d" % TAG_IDS.index(tag), args_to_send)
-                        self.max_client.send_message("/orientation/angle", self.angle)
-                        self.max_client.send_message("/orientation/distance", self.distance)
-                        self.max_client.send_message("/orientation/middle", [self.middle.x, 2.5, self.middle.y])
-                        self.of_client.send_message("/orientation/angle", [TAG_IDS[1], TAG_IDS[2], self.angle])
-                        self.of_client.send_message("/orientation/distance", [TAG_IDS[1], TAG_IDS[2], self.distance])
-                        self.of_client.send_message("/orientation/middle", [TAG_IDS[1], TAG_IDS[2], self.middle.x, 2.5, self.middle.y])
-
-                if network_id == TAG_IDS[1]:
+                if network_id == TAG_IDS[0]:
                     self.engine_client.send_message("/source21/position", [position_to_send.x, 2.5, position_to_send.y])
-                if network_id == TAG_IDS[2]:
+                if network_id == TAG_IDS[1]:
                     self.engine_client.send_message("/source22/position", [position_to_send.x, 2.5, position_to_send.y])
+
+    def publish_orientation_info(self):
+        self.max_client.send_message("/orientation/angle", self.angle)
+        self.max_client.send_message("/orientation/distance", self.distance)
+        self.max_client.send_message("/orientation/middle", [self.middle.x, 2.5, self.middle.y])
+
+        self.of_client.send_message("/orientation/angle", [TAG_IDS[0], TAG_IDS[1], self.angle])
+        self.of_client.send_message("/orientation/distance", [TAG_IDS[0], TAG_IDS[1], self.distance])
+        self.of_client.send_message("/orientation/middle", [TAG_IDS[0], TAG_IDS[1], self.middle.x, 2.5, self.middle.y])
+
+    def publish_distance_traveled(self, tag_id):
+        self.max_client.send_message("/distance/tag%d" % (TAG_IDS.index(tag_id)+1), self.tag_dist_traveled[tag_id])
 
     def setAnchorsManual(self, save_to_flash=False):
         """Adds the manually measured anchors to the Pozyx's device list one for one."""
@@ -187,10 +197,14 @@ def get_4d_coordinates(position):
     return Coordinates(-(position.x + X_OFFSET) / 1000, -(position.y + Y_OFFSET) / 1000, position.z / 1000)
 
 
-def get_orientation_info(p1, p2):
+def get_distance(p1, p2):
     x_diff = (p2.x - p1.x)
     y_diff = (p2.y - p1.y)
-    dist = sqrt(x_diff**2 + y_diff**2)
+    return sqrt(x_diff**2 + y_diff**2)
+
+
+def get_orientation_info(p1, p2):
+    dist = get_distance(p1, p2)
     middle = Coordinates((p1.x+p2.x)/2, (p1.y+p2.y)/2, (p1.z+p2.z)/2)
     angle = atan2((p2.y - p1.y), (p2.x - p1.x)) * 180 / pi
 
