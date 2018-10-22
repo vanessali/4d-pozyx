@@ -21,7 +21,7 @@ from pypozyx.tools.version_check import perform_latest_version_check
 
 
 # IDs of the tags to position, add None to position the local tag as well.
-TAG_IDS = [0x6746, 0x674B]
+TAG_IDS = [0x6746, 0x6747]
 
 
 class MultitagPositioning(object):
@@ -225,9 +225,9 @@ if __name__ == "__main__":
 
     # necessary data for calibration (SSI)
     anchors = [DeviceCoordinates(0x6764, 1, Coordinates(0, 0, 2352)),
-               DeviceCoordinates(0x6756, 1, Coordinates(3761, 12591, 2958)),
+               DeviceCoordinates(0x6756, 1, Coordinates(3761, 12591, 2438)),
                DeviceCoordinates(0x6727, 1, Coordinates(11879, 530, 2438)),
-               DeviceCoordinates(0x6e19, 1, Coordinates(18858, 0, 3364)),
+               DeviceCoordinates(0x6e19, 1, Coordinates(18858, 0, 2438)),
                DeviceCoordinates(0x6767, 1, Coordinates(18917, 12603, 2432)),
                DeviceCoordinates(0x6e17, 1, Coordinates(10979, 12061, 2438))]
 
